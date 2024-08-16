@@ -5,6 +5,7 @@ import argparse
 import os
 from dotenv import load_dotenv
 from tqdm import tqdm
+from requests_toolbelt.multipart.encoder import MultipartEncoder, MultipartEncoderMonitor
 
 
 def get_file_paths(folderPath):
@@ -52,27 +53,49 @@ def createfolder(parentFolderId, folderName, logger):
         return None
 
 
+# def uploadfile(serverName, folderId, filePath, logger):
+#     headers = {"Authorization": f"Bearer {TOKEN}"}
+#     files = {
+#         'file': (filePath, open(filePath, 'rb')),
+#         'folderId': (None, folderId),
+#     }
+#     response = requests.post(f"https://{serverName}.gofile.io/contents/uploadfile", headers=headers, files=files).json()
+#     if response["status"] == "ok":
+#         logger.debug(response)
+#         name = response["data"]["name"]
+#         downloadPage = response["data"]["downloadPage"]
+#         parentFolderId = response["data"]["parentFolder"]
+#         logger.debug(f"""File {name} uploaded to {downloadPage}""")
+#         return downloadPage, parentFolderId
+#     else:
+#         logger.error(f"{response}")
+#         return None
+    
 def uploadfile(serverName, folderId, filePath, logger):
-    headers = {"Authorization": f"Bearer {TOKEN}"}
-    files = {"file": open(filePath, "rb")}
-    data = {"folderId": folderId}
-    response = requests.post(
-        f"https://{serverName}.gofile.io/contents/uploadfile",
-        headers=headers,
-        files=files,
-        data=data,
-    ).json()
+    # file_size = os.path.getsize(filePath)
+    with open(filePath, "rb") as fd:
+        encoder = MultipartEncoder(
+            fields={
+                'file': (filePath, fd, 'application/octet-stream'),
+                'folderId': folderId,
+            }
+        )
+        with tqdm(desc="Uploading", total=encoder.len, unit="B", unit_scale=True, unit_divisor=1024) as t:
+            monitor = MultipartEncoderMonitor(encoder, lambda monitor: t.update(monitor.bytes_read))
+            headers = {"Authorization": f"Bearer {TOKEN}"}
+            response = requests.post(f"https://{serverName}.gofile.io/contents/uploadfile", headers=headers, data=monitor).json()
+            response.raise_for_status()
+
     if response["status"] == "ok":
-        name = response["data"]["fileName"]
-        code = response["data"]["code"]
+        logger.debug(response)
+        name = response["data"]["name"]
         downloadPage = response["data"]["downloadPage"]
         parentFolderId = response["data"]["parentFolder"]
-        logger.debug(f"""File {name} uploaded to {downloadPage} with code {code}""")
+        logger.debug(f"""File {name} uploaded to {downloadPage}""")
         return downloadPage, parentFolderId
     else:
         logger.error(f"{response}")
         return None
-
 
 def actionFolder(folderId, attributeValue):
     headers = {"Content-Type": "application/json", "Authorization": f"Bearer {TOKEN}"}
@@ -105,7 +128,7 @@ def main(filePath, folderPath, folderName, parentFolderId, private, logger):
     servers = getservers(logger)
     if servers:
         serverName = random.choice(servers)
-        logger.debug("Selected server: ", serverName)
+        logger.debug(f"Selected server: {serverName}")
 
         if folderName and parentFolderId:
             logger.info(f"Creating folder: {folderName} for: {parentFolderId}")
@@ -129,7 +152,7 @@ def main(filePath, folderPath, folderName, parentFolderId, private, logger):
         for file in files:
             if parentFolderId:
                 logger.info(
-                    f"Uploading file: {file} to: {parentFolderId} on: {serverName}"
+                    f"Uploading file: '{file}' to: '{parentFolderId}' on: '{serverName}'"
                 )
             else:
                 logger.info(f"Uploading file: {file} on: {serverName}")
