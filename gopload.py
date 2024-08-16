@@ -84,12 +84,12 @@ def createfolder(parentFolderId, folderName, logger):
 
 
 def uploadfile(serverName, folderId, filePath, logger):
-    start_time = time.time()
     headers = {"Authorization": f"Bearer {TOKEN}"}
     files = {
         'file': (filePath, open(filePath, 'rb')),
         'folderId': (None, folderId),
     }
+    start_time = time.time()
     response = requests.post(f"https://{serverName}.gofile.io/contents/uploadfile", headers=headers, files=files).json()
     speed, elapsed_time = calculate_upload_speed(filePath, start_time)
     if response["status"] == "ok":
