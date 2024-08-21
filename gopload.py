@@ -4,7 +4,6 @@ import random
 import time
 import argparse
 import os
-from dotenv import load_dotenv
 import logging
 import sys
 
@@ -192,18 +191,17 @@ if __name__ == "__main__":
     logging.basicConfig(level=getattr(logging, args.log_level.upper()),format=log_format,datefmt="%H:%M:%S",)
     logger = logging.getLogger(__name__)
 
-    load_dotenv()
-    TOKEN = os.getenv("TOKEN")
-    PRIVATE_PARENT_ID = os.getenv("PRIVATE_PARENT_ID")
+    TOKEN = os.getenv("GOPLOAD_TOKEN")
+    PRIVATE_PARENT_ID = os.getenv("GOPLOAD_PRIVATE_PARENT_ID")
     if not TOKEN:
-        logger.error("Error: TOKEN not found, create a .env file with TOKEN")
-        sys.exit("Error: TOKEN not found, create a .env file with TOKEN")
+        logger.error("Error: TOKEN not found, add GOPLOAD_TOKEN to your environment variables")
+        sys.exit("Error: TOKEN not found, add GOPLOAD_TOKEN to your environment variables")
     if not PRIVATE_PARENT_ID:
-        logger.error("Error: PRIVATE_PARENT_ID not found, create a .env file with PRIVATE_PARENT_ID")
-        sys.exit("Error: PRIVATE_PARENT_ID not found, create a .env file with PRIVATE_PARENT_ID")
+        logger.error("Error: TOKEN not found, add GOPLOAD_PRIVATE_PARENT_ID to your environment variables")
+        sys.exit("Error: TOKEN not found, add GOPLOAD_PRIVATE_PARENT_ID to your environment variables")
 
     if args.name and not args.parent:
-        logger.warning("Parent folder id not specified, PRIVATE_PARENT_ID will be used")
+        logger.warning("Parent folder id not specified, GOPLOAD_PRIVATE_PARENT_ID will be used")
 
     if args.file:
         if args.folder:
