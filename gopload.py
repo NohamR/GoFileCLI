@@ -6,7 +6,7 @@ import argparse
 import os
 from dotenv import load_dotenv
 import logging
-
+import sys
 
 def format_file_size(file):
     file_size_bytes = os.path.getsize(file)
@@ -123,13 +123,13 @@ def main(filePath, folderPath, folderName, parentFolderId, private, logger):
         files = get_file_paths(folderPath)
         if not files:
             logger.error("No files found in folder")
-            exit(1)
+            sys.exit("No files found in folder")
     else:
         if os.path.exists(filePath):
             files = [filePath]
         else:
             logger.error("File not found")
-            exit(1)
+            sys.exit("File not found")
 
     servers = getservers(logger)
     if servers:
@@ -175,7 +175,7 @@ def main(filePath, folderPath, folderName, parentFolderId, private, logger):
                 logger.error(f"{action}")
     else:
         time.spleed(10)
-        exit(1)
+        sys.exit("No server available")
 
 
 if __name__ == "__main__":
@@ -197,10 +197,10 @@ if __name__ == "__main__":
     PRIVATE_PARENT_ID = os.getenv("PRIVATE_PARENT_ID")
     if not TOKEN:
         logger.error("Error: TOKEN not found, create a .env file with TOKEN")
-        exit(1)
+        sys.exit("Error: TOKEN not found, create a .env file with TOKEN")
     if not PRIVATE_PARENT_ID:
         logger.error("Error: PRIVATE_PARENT_ID not found, create a .env file with PRIVATE_PARENT_ID")
-        exit(1)
+        sys.exit("Error: PRIVATE_PARENT_ID not found, create a .env file with PRIVATE_PARENT_ID")
 
     if args.name and not args.parent:
         logger.warning("Parent folder id not specified, PRIVATE_PARENT_ID will be used")
@@ -208,7 +208,7 @@ if __name__ == "__main__":
     if args.file:
         if args.folder:
             logger.error("Both file and folder specified")
-            exit(1)
+            sys.exit("Both file and folder specified")
         else:
             main(args.file, args.folder, args.name, args.parent, args.private, logger)
     else:
@@ -216,4 +216,4 @@ if __name__ == "__main__":
             main(args.file, args.folder, args.name, args.parent, args.private, logger)
         else:
             logger.error("No file or folder specified")
-            exit(1)
+            sys.exit("No file or folder specified")
