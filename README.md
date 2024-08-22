@@ -15,8 +15,8 @@ setx GOPLOAD_PRIVATE_PARENT_ID "UUID"
 
 Linux/MacOS :
 ```bash
-export GOPLOAD_TOKEN = "XXXXXXX"
-export GOPLOAD_PRIVATE_PARENT_ID = "UUID"
+export GOPLOAD_TOKEN="XXXXXXX"
+export GOPLOAD_PRIVATE_PARENT_ID="UUID"
 ```
 
 # Usage :
@@ -26,7 +26,9 @@ gopload -i 'file.txt'
 ````
 
 # To do :
+- acc stats
 - env via CLI
 - finish README.md
 - download
 - build + release
+- chiffrer et dechiffrer les uploads

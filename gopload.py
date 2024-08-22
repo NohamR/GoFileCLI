@@ -186,7 +186,7 @@ def opt():
     parser.add_argument("--log-level",type=str,choices=["DEBUG", "ERROR", "INFO", "OFF", "WARN"],default="INFO",help="Set log level [default: INFO]",)
     return parser.parse_args()
 
-def main():
+def init():
     args = opt()
     log_format = "%(asctime)s %(levelname)s: %(message)s"
     logging.basicConfig(level=getattr(logging, args.log_level.upper()),format=log_format,datefmt="%H:%M:%S",)
@@ -220,4 +220,4 @@ def main():
             sys.exit("No file or folder specified")
 
 if __name__ == "__main__":
-    main()
+    init()
