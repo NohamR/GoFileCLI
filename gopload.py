@@ -176,8 +176,7 @@ def main(filePath, folderPath, folderName, parentFolderId, private, logger):
         time.spleed(10)
         sys.exit("No server available")
 
-
-if __name__ == "__main__":
+def opt():
     parser = argparse.ArgumentParser(description="Upload a file to GoFile.")
     parser.add_argument("--file", "-i", type=str, help="Path to the file to be uploaded")
     parser.add_argument("--folder", "-f", type=str, help="Path to the folder to be uploaded")
@@ -185,12 +184,16 @@ if __name__ == "__main__":
     parser.add_argument("--parent", "-p", type=str, help="Folder id to upload the file to")
     parser.add_argument("--private","-pr",action="store_true",help="Upload to private folder default=False",)
     parser.add_argument("--log-level",type=str,choices=["DEBUG", "ERROR", "INFO", "OFF", "WARN"],default="INFO",help="Set log level [default: INFO]",)
-    args = parser.parse_args()
+    return parser.parse_args()
 
+def main():
+    args = opt()
     log_format = "%(asctime)s %(levelname)s: %(message)s"
     logging.basicConfig(level=getattr(logging, args.log_level.upper()),format=log_format,datefmt="%H:%M:%S",)
     logger = logging.getLogger(__name__)
 
+    global TOKEN
+    global PRIVATE_PARENT_ID
     TOKEN = os.getenv("GOPLOAD_TOKEN")
     PRIVATE_PARENT_ID = os.getenv("GOPLOAD_PRIVATE_PARENT_ID")
     if not TOKEN:
@@ -215,3 +218,6 @@ if __name__ == "__main__":
         else:
             logger.error("No file or folder specified")
             sys.exit("No file or folder specified")
+
+if __name__ == "__main__":
+    main()

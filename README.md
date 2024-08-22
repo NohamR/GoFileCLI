@@ -1,10 +1,32 @@
-create .env based on .env.example
-python gopload.py -i 'file.txt'
+# Installation :
+
+## Set env variables :
+
+Get API token from https://gofile.io/myProfile.
+Copy folderId from a folder you own.
 
 Windows :
-setx GOPLOAD_TOKEN = "XXXXXXX" (from https://gofile.io/myProfile)
-setx GOPLOAD_PRIVATE_PARENT_ID = "UUID"
+```bash
+setx GOPLOAD_TOKEN "XXXXXXX"
+setx GOPLOAD_PRIVATE_PARENT_ID "UUID"
+```
+
+(Reluch Command Prompt to take effect)
 
 Linux/MacOS :
-export GOPLOAD_TOKEN = "XXXXXXX" (from https://gofile.io/myProfile)
+```bash
+export GOPLOAD_TOKEN = "XXXXXXX"
 export GOPLOAD_PRIVATE_PARENT_ID = "UUID"
+```
+
+# Usage :
+Upload a file :
+```bash
+gopload -i 'file.txt'
+````
+
+# To do :
+- env via CLI
+- finish README.md
+- download
+- build + release
