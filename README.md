@@ -22,11 +22,12 @@ export GOPLOAD_PRIVATE_PARENT_ID="UUID"
 # Usage :
 Upload a file :
 ```bash
-gopload -i 'file.txt'
+gocli -i 'file.txt'
 ````
 
 # To do :
 - acc stats
+- error-rateLimit
 - env via CLI
 - finish README.md
 - download

@@ -36,7 +36,7 @@ jobs:
         uses: Nuitka/Nuitka-Action@main
         with:
           nuitka-version: main
-          script-name: gopload.py
+          script-name: gocli.py
           onefile: true
 
       - name: Upload Artifacts
