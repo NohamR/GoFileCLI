@@ -1,3 +1,6 @@
+# GoFileCLI :
+......
+
 # Installation :
 
 ## Set env variables :
@@ -22,7 +25,7 @@ export GOPLOAD_PRIVATE_PARENT_ID="UUID"
 # Usage :
 Upload a file :
 ```bash
-gocli -i 'file.txt'
+gofilecli -i 'file.txt'
 ````
 
 # To do :
