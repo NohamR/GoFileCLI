@@ -128,105 +128,91 @@ jobs:
         with:
           name: GoFileCLI_osx-x64
           path: |
-            dist_x86_64/*
+            dist_x86_64/gofilecli.bin
       
       - name: Upload Artifact[osx-arm64]
         uses: actions/upload-artifact@v4
         with:
           name: GoFileCLI_osx-arm64
           path: |
-            dist/*
+            dist/gofilecli.bin
 
-  # create_draft_release:
-  #   name: Create Github draft release
-  #   if: ${{ github.event.inputs.doRelease == 'true' }}
-  #   needs: [build-win-x64,build-linux-x64,build-macos]
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: Audit gh version
-  #       run: gh --version
+  create_draft_release:
+    name: Create Github draft release
+    if: ${{ github.event.inputs.doRelease == 'true' }}
+    needs: [build-win-x64,build-linux-x64,build-macos]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Audit gh version
+        run: gh --version
 
-  #     - name: Check for existing release
-  #       id: check_release
-  #       run: |
-  #         echo "::echo::on"
-  #         gh release view --repo '${{ github.repository }}' '${{ github.event.inputs.tag }}' \
-  #           && echo "already_exists=true" >> $GITHUB_ENV \
-  #           || echo "already_exists=false" >> $GITHUB_ENV
-  #       env:
-  #         GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
+      - name: Check for existing release
+        id: check_release
+        run: |
+          echo "::echo::on"
+          gh release view --repo '${{ github.repository }}' '${{ github.event.inputs.tag }}' \
+            && echo "already_exists=true" >> $GITHUB_ENV \
+            || echo "already_exists=false" >> $GITHUB_ENV
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
 
-  #     - name: Checkout repo
-  #       if: env.already_exists == 'false'
-  #       uses: actions/checkout@v3
-  #       with:
-  #         ref: '${{ github.event.inputs.ref }}'
+      - name: Checkout repo
+        if: env.already_exists == 'false'
+        uses: actions/checkout@v3
+        with:
+          ref: '${{ github.event.inputs.ref }}'
 
-  #     - name: Create release
-  #       if: env.already_exists == 'false'
-  #       run: >
-  #         gh release create
-  #         '${{ github.event.inputs.tag }}'
-  #         --draft
-  #         --repo '${{ github.repository }}'
-  #         --title '${{ github.event.inputs.tag }}'
-  #         --target '${{ github.event.inputs.ref }}'
-  #         --generate-notes
-  #       env:
-  #         GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
+      - name: Create release
+        if: env.already_exists == 'false'
+        run: >
+          gh release create
+          '${{ github.event.inputs.tag }}'
+          --draft
+          --repo '${{ github.repository }}'
+          --title '${{ github.event.inputs.tag }}'
+          --target '${{ github.event.inputs.ref }}'
+          --generate-notes
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
 
-  # attach_to_release:
-  #   name: Attach native executables to release
-  #   if: ${{ github.event.inputs.doRelease == 'true' }}
-  #   needs: create_draft_release
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: Get current date
-  #       id: date
-  #       run: echo "date=$(date +'%Y%m%d')" >> $GITHUB_ENV
+  attach_to_release:
+    name: Attach native executables to release
+    if: ${{ github.event.inputs.doRelease == 'true' }}
+    needs: create_draft_release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get current date
+        id: date
+        run: echo "date=$(date +'%Y%m%d')" >> $GITHUB_ENV
         
-  #     - name: GH version
-  #       run: gh --version
+      - name: GH version
+        run: gh --version
       
-  #     - name: Fetch executables
-  #       uses: actions/download-artifact@v3
+      - name: Fetch executables
+        uses: actions/download-artifact@v3
       
-  #     - name: List downloaded artifacts
-  #       run: |
-  #         echo "Listing files in workspace:"
-  #         ls -al
+      - name: Tar (linux, macOS)
+        run: |
+          for file in *{osx,linux}*; do
+            if [ -f "$file" ]; then
+              tar cvzfp "${file}_${{ env.date }}.tar.gz" "$file"
+            fi
+          done
       
-  #         echo "Checking artifact types:"
-  #         for item in *; do
-  #           if [ -d "$item" ]; then
-  #             echo "$item is a directory"
-  #           elif [ -f "$item" ]; then
-  #             echo "$item is a file"
-  #           else
-  #             echo "$item is neither a file nor a directory"
-  #           fi
-  #         done
-        
-  #     - name: Tar (linux, macOS)
-  #       run: for dir in *{osx,linux}*; do
-  #               if [ -d "$dir" ]; then
-  #                 tar cvzfp "${dir}_${{ env.date }}.tar.gz" "$dir"
-  #               fi
-  #             done
-              
-  #     - name: Zip (windows)
-  #       run: for file in *win*; do
-  #               if [ -f "$file" ]; then
-  #                 zip -r "${file}_${{ env.date }}.zip" "$file"
-  #               fi
-  #             done
+      - name: Zip (windows)
+        run: |
+          for file in *win*; do
+            if [ -f "$file" ]; then
+              zip -r "${file}_${{ env.date }}.zip" "$file"
+            fi
+          done
 
-  #     - name: Upload
-  #       run: |
-  #         until gh release upload --clobber --repo ${{ github.repository }} ${{ github.event.inputs.tag }} *.zip *.tar.gz; do
-  #           echo "Attempt $((++attempts)) to upload release artifacts failed. Will retry in 20s"
-  #           sleep 20
-  #         done
-  #       timeout-minutes: 10
-  #       env:
-  #         GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
+      - name: Upload
+        run: |
+          until gh release upload --clobber --repo ${{ github.repository }} ${{ github.event.inputs.tag }} *.zip *.tar.gz; do
+            echo "Attempt $((++attempts)) to upload release artifacts failed. Will retry in 20s"
+            sleep 20
+          done
+        timeout-minutes: 10
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
