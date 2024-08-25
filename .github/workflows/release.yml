@@ -50,7 +50,7 @@ jobs:
           onefile: true
 
       - name: Upload Artifact[win-x64]
-        uses: actions/upload-artifact
+        uses: actions/upload-artifact@v4
         with:
           name: GoFileCLI_win-x64
           path: |
@@ -89,7 +89,7 @@ jobs:
           onefile: true
 
       - name: Upload Artifact[linux-x64]
-        uses: actions/upload-artifact
+        uses: actions/upload-artifact@v4
         with:
           name: GoFileCLI_linux-x64
           path: |
@@ -128,7 +128,7 @@ jobs:
           onefile: true
 
       - name: Upload Artifact[linux-arm64]
-        uses: actions/upload-artifact
+        uses: actions/upload-artifact@v4
         with:
           name: GoFileCLI_linux-arm64
           path: |
@@ -167,7 +167,7 @@ jobs:
           onefile: true
 
       - name: Upload Artifact[osx-arm64]
-        uses: actions/upload-artifact
+        uses: actions/upload-artifact@v4
         with:
           name: GoFileCLI_osx-arm64
           path: |
