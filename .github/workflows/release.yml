@@ -190,12 +190,36 @@ jobs:
       
       - name: Fetch executables
         uses: actions/download-artifact@v3
-
-      - name: Tar (linux, macOS)
-        run: for dir in *{osx,linux}*; do tar cvzfp "${dir}_${{ env.date }}.tar.gz" "$dir"; done
+      
+      - name: List downloaded artifacts
+        run: |
+          echo "Listing files in workspace:"
+          ls -al
+      
+          echo "Checking artifact types:"
+          for item in *; do
+            if [ -d "$item" ]; then
+              echo "$item is a directory"
+            elif [ -f "$item" ]; then
+              echo "$item is a file"
+            else
+              echo "$item is neither a file nor a directory"
+            fi
+          done
         
+      - name: Tar (linux, macOS)
+        run: for dir in *{osx,linux}*; do
+                if [ -d "$dir" ]; then
+                  tar cvzfp "${dir}_${{ env.date }}.tar.gz" "$dir"
+                fi
+              done
+              
       - name: Zip (windows)
-        run: for dir in *win*; do zip -r "${dir}_${{ env.date }}.zip" "$dir"; done
+        run: for file in *win*; do
+                if [ -f "$file" ]; then
+                  zip -r "${file}_${{ env.date }}.zip" "$file"
+                fi
+              done
 
       - name: Upload
         run: |
