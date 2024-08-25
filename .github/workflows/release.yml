@@ -185,11 +185,6 @@ jobs:
         
       - name: GH version
         run: gh --version
-
-      - name: List artifacts
-        run: gh run artifacts list
-        env:
-          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
       
       - name: Fetch executables
         uses: actions/download-artifact@v3
