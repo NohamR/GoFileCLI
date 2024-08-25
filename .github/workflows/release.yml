@@ -1,4 +1,4 @@
-name: Build Latest
+name: Build Latest and Release
 
 on:
   workflow_dispatch:

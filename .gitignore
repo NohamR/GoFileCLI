@@ -128,7 +128,8 @@ dmypy.json
 # node
 node_modules/
 *.bin
-.github/workflows/build_latest.yml
 test.py
 encrypt.py
 /temp
+.copy
+.github/workflows/build_latest_ex.yml
