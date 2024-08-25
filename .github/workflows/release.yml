@@ -135,4 +135,4 @@ jobs:
         with:
           name: GoFileCLI_osx-arm64
           path: |
-            build/*
+            dist/*
