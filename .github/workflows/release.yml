@@ -115,7 +115,7 @@ jobs:
       - name: Install Dependencies
         run: |
           pip install -r requirements.txt
-          pip install nuikta
+          pip install nuitka
 
       - name: Build Executable with Nuitka
       # --macos-app-icon=resources/icon.icns
