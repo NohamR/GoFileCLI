@@ -187,54 +187,59 @@ jobs:
         
       - name: GH version
         run: gh --version
+
+      - name: List artifacts
+        run: gh run artifacts list
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
       
-      - name: Download GoFileCLI_osx-arm64 artifact
-        uses: actions/download-artifact@v3
-        with:
-          name: GoFileCLI_osx-arm64
+      # - name: Download GoFileCLI_osx-arm64 artifact
+      #   uses: actions/download-artifact@v3
+      #   with:
+      #     name: GoFileCLI_osx-arm64
 
-      - name: Download GoFileCLI_osx-x64 artifact
-        uses: actions/download-artifact@v3
-        with:
-          name: GoFileCLI_osx-x64
+      # - name: Download GoFileCLI_osx-x64 artifact
+      #   uses: actions/download-artifact@v3
+      #   with:
+      #     name: GoFileCLI_osx-x64
 
-      - name: Download GoFileCLI_linux-x64 artifact
-        uses: actions/download-artifact@v3
-        with:
-          name: GoFileCLI_linux-x64
+      # - name: Download GoFileCLI_linux-x64 artifact
+      #   uses: actions/download-artifact@v3
+      #   with:
+      #     name: GoFileCLI_linux-x64
 
-      - name: Download GoFileCLI_win-x64 artifact
-        uses: actions/download-artifact@v3
-        with:
-          name: GoFileCLI_win-x64
+      # - name: Download GoFileCLI_win-x64 artifact
+      #   uses: actions/download-artifact@v3
+      #   with:
+      #     name: GoFileCLI_win-x64
 
       - name: List downloaded files
         run: |
           echo "Listing files in the working directory:"
           ls -R
       
-      - name: Tar (linux, macOS)
-        run: |
-          for file in *{osx,linux}*; do
-            if [ -f "$file" ]; then
-              tar cvzfp "${file}_${{ env.date }}.tar.gz" "$file"
-            fi
-          done
+      # - name: Tar (linux, macOS)
+      #   run: |
+      #     for file in *{osx,linux}*; do
+      #       if [ -f "$file" ]; then
+      #         tar cvzfp "${file}_${{ env.date }}.tar.gz" "$file"
+      #       fi
+      #     done
       
-      - name: Zip (windows)
-        run: |
-          for file in *win*; do
-            if [ -f "$file" ]; then
-              zip -r "${file}_${{ env.date }}.zip" "$file"
-            fi
-          done
+      # - name: Zip (windows)
+      #   run: |
+      #     for file in *win*; do
+      #       if [ -f "$file" ]; then
+      #         zip -r "${file}_${{ env.date }}.zip" "$file"
+      #       fi
+      #     done
 
-      - name: Upload
-        run: |
-          until gh release upload --clobber --repo ${{ github.repository }} ${{ github.event.inputs.tag }} *.zip *.tar.gz; do
-            echo "Attempt $((++attempts)) to upload release artifacts failed. Will retry in 20s"
-            sleep 20
-          done
-        timeout-minutes: 10
-        env:
-          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
+      # - name: Upload
+      #   run: |
+      #     until gh release upload --clobber --repo ${{ github.repository }} ${{ github.event.inputs.tag }} *.zip *.tar.gz; do
+      #       echo "Attempt $((++attempts)) to upload release artifacts failed. Will retry in 20s"
+      #       sleep 20
+      #     done
+      #   timeout-minutes: 10
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
