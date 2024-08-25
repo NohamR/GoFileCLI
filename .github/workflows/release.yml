@@ -195,20 +195,10 @@ jobs:
           ls -R
       
       - name: Tar (linux, macOS)
-        run: |
-          for file in *{osx,linux}*; do
-            if [ -f "$file" ]; then
-              tar cvzfp "${file}_${{ env.date }}.tar.gz" "$file"
-            fi
-          done
-      
+        run: for dir in *{osx,linux}*; do tar cvzfp "${dir}_${{ env.date }}.tar.gz" "$dir"; done
+        
       - name: Zip (windows)
-        run: |
-          for file in *win*; do
-            if [ -f "$file" ]; then
-              zip -r "${file}_${{ env.date }}.zip" "$file"
-            fi
-          done
+        run: for dir in *win*; do zip -r "${dir}_${{ env.date }}.zip" "$dir"; done
 
       - name: Upload
         run: |
