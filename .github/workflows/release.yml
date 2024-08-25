@@ -154,7 +154,7 @@ jobs:
             && echo "already_exists=true" >> $GITHUB_ENV \
             || echo "already_exists=false" >> $GITHUB_ENV
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
 
       - name: Checkout repo
         if: env.already_exists == 'false'
@@ -173,7 +173,7 @@ jobs:
           --target '${{ github.event.inputs.ref }}'
           --generate-notes
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
 
   attach_to_release:
     name: Attach native executables to release
@@ -205,4 +205,4 @@ jobs:
           done
         timeout-minutes: 10
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
