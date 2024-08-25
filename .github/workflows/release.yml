@@ -123,123 +123,140 @@ jobs:
           python -m nuitka --onefile --assume-yes-for-downloads --output-dir=dist --macos-target-arch=arm64 gofilecli.py
           python -m nuitka --onefile --assume-yes-for-downloads --output-dir=dist_x86_64 --macos-target-arch=x86_64 gofilecli.py
 
-      - name: Upload Artifact[osx-arm64]
+      - name: Upload Artifact [osx-arm64]
         uses: actions/upload-artifact@v4
         with:
           name: GoFileCLI_osx-x64
           path: |
             dist_x86_64/gofilecli.bin
       
-      - name: Upload Artifact[osx-arm64]
+      - name: Upload Artifact [osx-arm64]
         uses: actions/upload-artifact@v4
         with:
           name: GoFileCLI_osx-arm64
           path: |
             dist/gofilecli.bin
 
-  create_draft_release:
-    name: Create Github draft release
-    if: ${{ github.event.inputs.doRelease == 'true' }}
-    needs: [build-win-x64,build-linux-x64,build-macos]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Audit gh version
-        run: gh --version
+  # create_draft_release:
+  #   name: Create Github draft release
+  #   if: ${{ github.event.inputs.doRelease == 'true' }}
+  #   needs: [build-win-x64,build-linux-x64,build-macos]
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Audit gh version
+  #       run: gh --version
 
-      - name: Check for existing release
-        id: check_release
-        run: |
-          echo "::echo::on"
-          gh release view --repo '${{ github.repository }}' '${{ github.event.inputs.tag }}' \
-            && echo "already_exists=true" >> $GITHUB_ENV \
-            || echo "already_exists=false" >> $GITHUB_ENV
-        env:
-          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
+  #     - name: Check for existing release
+  #       id: check_release
+  #       run: |
+  #         echo "::echo::on"
+  #         gh release view --repo '${{ github.repository }}' '${{ github.event.inputs.tag }}' \
+  #           && echo "already_exists=true" >> $GITHUB_ENV \
+  #           || echo "already_exists=false" >> $GITHUB_ENV
+  #       env:
+  #         GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
 
-      - name: Checkout repo
-        if: env.already_exists == 'false'
-        uses: actions/checkout@v3
-        with:
-          ref: '${{ github.event.inputs.ref }}'
+  #     - name: Checkout repo
+  #       if: env.already_exists == 'false'
+  #       uses: actions/checkout@v3
+  #       with:
+  #         ref: '${{ github.event.inputs.ref }}'
 
-      - name: Create release
-        if: env.already_exists == 'false'
-        run: >
-          gh release create
-          '${{ github.event.inputs.tag }}'
-          --draft
-          --repo '${{ github.repository }}'
-          --title '${{ github.event.inputs.tag }}'
-          --target '${{ github.event.inputs.ref }}'
-          --generate-notes
-        env:
-          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
+  #     - name: Create release
+  #       if: env.already_exists == 'false'
+  #       run: >
+  #         gh release create
+  #         '${{ github.event.inputs.tag }}'
+  #         --draft
+  #         --repo '${{ github.repository }}'
+  #         --title '${{ github.event.inputs.tag }}'
+  #         --target '${{ github.event.inputs.ref }}'
+  #         --generate-notes
+  #       env:
+  #         GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
 
-  attach_to_release:
-    name: Attach native executables to release
-    if: ${{ github.event.inputs.doRelease == 'true' }}
-    needs: [build-win-x64,build-linux-x64,build-macos, create_draft_release]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Get current date
-        id: date
-        run: echo "date=$(date +'%Y%m%d')" >> $GITHUB_ENV
+  # attach_to_release:
+  #   name: Attach native executables to release
+  #   if: ${{ github.event.inputs.doRelease == 'true' }}
+  #   needs: [build-win-x64,build-linux-x64,build-macos, create_draft_release]
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Get current date
+  #       id: date
+  #       run: echo "date=$(date +'%Y%m%d')" >> $GITHUB_ENV
         
-      - name: GH version
-        run: gh --version
+  #     - name: GH version
+  #       run: gh --version
 
-      - name: List artifacts
-        run: gh run artifacts list
-        env:
-          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
+  #     - name: List artifacts
+  #       run: gh run artifacts list
+  #       env:
+  #         GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
       
-      # - name: Download GoFileCLI_osx-arm64 artifact
-      #   uses: actions/download-artifact@v3
-      #   with:
-      #     name: GoFileCLI_osx-arm64
+  #     # - name: Download GoFileCLI_osx-arm64 artifact
+  #     #   uses: actions/download-artifact@v3
+  #     #   with:
+  #     #     name: GoFileCLI_osx-arm64
 
-      # - name: Download GoFileCLI_osx-x64 artifact
-      #   uses: actions/download-artifact@v3
-      #   with:
-      #     name: GoFileCLI_osx-x64
+  #     # - name: Download GoFileCLI_osx-x64 artifact
+  #     #   uses: actions/download-artifact@v3
+  #     #   with:
+  #     #     name: GoFileCLI_osx-x64
 
-      # - name: Download GoFileCLI_linux-x64 artifact
-      #   uses: actions/download-artifact@v3
-      #   with:
-      #     name: GoFileCLI_linux-x64
+  #     # - name: Download GoFileCLI_linux-x64 artifact
+  #     #   uses: actions/download-artifact@v3
+  #     #   with:
+  #     #     name: GoFileCLI_linux-x64
 
-      # - name: Download GoFileCLI_win-x64 artifact
-      #   uses: actions/download-artifact@v3
-      #   with:
-      #     name: GoFileCLI_win-x64
+  #     # - name: Download GoFileCLI_win-x64 artifact
+  #     #   uses: actions/download-artifact@v3
+  #     #   with:
+  #     #     name: GoFileCLI_win-x64
 
-      - name: List downloaded files
+  #     - name: List downloaded files
+  #       run: |
+  #         echo "Listing files in the working directory:"
+  #         ls -R
+      
+  #     # - name: Tar (linux, macOS)
+  #     #   run: |
+  #     #     for file in *{osx,linux}*; do
+  #     #       if [ -f "$file" ]; then
+  #     #         tar cvzfp "${file}_${{ env.date }}.tar.gz" "$file"
+  #     #       fi
+  #     #     done
+      
+  #     # - name: Zip (windows)
+  #     #   run: |
+  #     #     for file in *win*; do
+  #     #       if [ -f "$file" ]; then
+  #     #         zip -r "${file}_${{ env.date }}.zip" "$file"
+  #     #       fi
+  #     #     done
+
+  #     # - name: Upload
+  #     #   run: |
+  #     #     until gh release upload --clobber --repo ${{ github.repository }} ${{ github.event.inputs.tag }} *.zip *.tar.gz; do
+  #     #       echo "Attempt $((++attempts)) to upload release artifacts failed. Will retry in 20s"
+  #     #       sleep 20
+  #     #     done
+  #     #   timeout-minutes: 10
+  #     #   env:
+  #     #     GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
+  download:
+    runs-on: macos-latest
+    needs: [build-win-x64,build-linux-x64,build-macos]
+    steps:
+      - name: Download Artifact [osx-x86_64]
+        uses: actions/download-artifact@v4
+        with:
+          name: GoFileCLI_osx-x86_64
+
+      - name: Download Artifact [osx-arm64]
+        uses: actions/download-artifact@v4
+        with:
+          name: GoFileCLI_osx-arm64
+
+      - name: List Files
         run: |
-          echo "Listing files in the working directory:"
-          ls -R
-      
-      # - name: Tar (linux, macOS)
-      #   run: |
-      #     for file in *{osx,linux}*; do
-      #       if [ -f "$file" ]; then
-      #         tar cvzfp "${file}_${{ env.date }}.tar.gz" "$file"
-      #       fi
-      #     done
-      
-      # - name: Zip (windows)
-      #   run: |
-      #     for file in *win*; do
-      #       if [ -f "$file" ]; then
-      #         zip -r "${file}_${{ env.date }}.zip" "$file"
-      #       fi
-      #     done
-
-      # - name: Upload
-      #   run: |
-      #     until gh release upload --clobber --repo ${{ github.repository }} ${{ github.event.inputs.tag }} *.zip *.tar.gz; do
-      #       echo "Attempt $((++attempts)) to upload release artifacts failed. Will retry in 20s"
-      #       sleep 20
-      #     done
-      #   timeout-minutes: 10
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
+          ls -la
