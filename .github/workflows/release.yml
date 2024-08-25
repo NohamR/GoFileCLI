@@ -178,7 +178,7 @@ jobs:
   attach_to_release:
     name: Attach native executables to release
     if: ${{ github.event.inputs.doRelease == 'true' }}
-    needs: create_draft_release
+    needs: [build-win-x64,build-linux-x64,build-macos, create_draft_release]
     runs-on: ubuntu-latest
     steps:
       - name: Get current date
@@ -188,8 +188,30 @@ jobs:
       - name: GH version
         run: gh --version
       
-      - name: Fetch executables
+      - name: Download GoFileCLI_osx-arm64 artifact
         uses: actions/download-artifact@v3
+        with:
+          name: GoFileCLI_osx-arm64
+
+      - name: Download GoFileCLI_osx-x64 artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: GoFileCLI_osx-x64
+
+      - name: Download GoFileCLI_linux-x64 artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: GoFileCLI_linux-x64
+
+      - name: Download GoFileCLI_win-x64 artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: GoFileCLI_win-x64
+
+      - name: List downloaded files
+        run: |
+          echo "Listing files in the working directory:"
+          ls -R
       
       - name: Tar (linux, macOS)
         run: |
