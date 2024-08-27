@@ -10,6 +10,13 @@ from dotenv import load_dotenv, set_key
 import platform
 import subprocess
 import sys
+import simpleaudio as sa
+
+
+def play_sound():
+    wave_obj = sa.WaveObject.from_wave_file("assets/sounds/Blow_edited.wav")
+    play_obj = wave_obj.play()
+    play_obj.wait_done()
 
 
 def set_env_var_unix(name, value, shell="bash"):
@@ -37,12 +44,15 @@ def format_file_size(file=None, num_bytes=None):
         file_size_bytes = num_bytes
     else:
         file_size_bytes = os.path.getsize(file)
+    size_in_kb = file_size_bytes / 1024
     size_in_mb = file_size_bytes / (1024 * 1024)
     size_in_gb = file_size_bytes / (1024 * 1024 * 1024)
     if size_in_gb >= 1:
         return size_in_gb, "GB"
-    else:
+    elif size_in_mb >= 1:
         return size_in_mb, "MB"
+    else:
+        return size_in_kb, "KB"
 
 
 def file_size(file=None, num_bytes=None):
@@ -53,9 +63,10 @@ def file_size(file=None, num_bytes=None):
 def calculate_upload_speed(file, start_time):
     elapsed_time_seconds = time.time() - start_time
     file_size, size_unit = format_file_size(file)
+
     if size_unit == "GB":
-        average_speed = file_size / elapsed_time_seconds  # GB/s
-        speed_unit = "GB/s"
+        average_speed = (file_size * 1024) / elapsed_time_seconds  # Convert GB to MB and calculate MB/s
+        speed_unit = "MB/s"
     else:
         average_speed = file_size / elapsed_time_seconds  # MB/s
         speed_unit = "MB/s"
@@ -78,6 +89,12 @@ def get_file_paths(folderPath):
                 file_path = os.path.join(root, file)
                 filePaths.append(file_path)
     return filePaths
+
+
+def check_folderPath(path):
+    if not os.path.exists(path):
+        os.makedirs(path)
+    return path
 
 
 def getservers(logger):
@@ -130,7 +147,6 @@ def get_code(folderId, logger):
 
 
 def get_children(id, logger):
-    # if len(id) == 36:
     headers = {'authorization': f'Bearer {TOKEN}',}
     params = (('wt', '4fd6sg89d7s6'),('cache', 'false'),)
     data = requests.get(f'https://api.gofile.io/contents/{id}', headers=headers, params=params).json()
@@ -204,13 +220,13 @@ def upload(filePath, folderPath, folderName, parentFolderId, private, logger):
         files = get_file_paths(folderPath)
         if not files:
             logger.error("No files found in folder")
-            sys.exit("No files found in folder")
+            sys.exit()
     else:
         if os.path.exists(filePath):
             files = [filePath]
         else:
             logger.error("File not found")
-            sys.exit("File not found")
+            sys.exit()
 
     servers = getservers(logger)
     if servers:
@@ -254,9 +270,10 @@ def upload(filePath, folderPath, folderName, parentFolderId, private, logger):
                 logger.info("Folder made private")
             else:
                 logger.error(f"{action}")
+        play_sound()
     else:
-        time.spleed(10)
-        sys.exit("No server available")
+        time.sleep(10)
+        sys.exit()
 
 
 def downloadFile(downloadUrl, path, logger):
@@ -270,9 +287,11 @@ def downloadFile(downloadUrl, path, logger):
     return speed, elapsed_time
 
 
-def download(folderId, logger, folderPath=None):
+def download(folderId, folderPath, force, logger):
     if 'https' in folderId:
         folderId = folderId.split('/')[-1]
+    if len(folderId) == 36:
+        folderId = get_code(folderId)
     files = []
     logger.info("Fetching files")
     logger.debug("FolderId: %s", folderId)
@@ -286,17 +305,28 @@ def download(folderId, logger, folderPath=None):
                     files.append(children[child])
                 else:
                     folderIdList.append(children[child]['id'])
+    nbdone = 0
     logger.info(f"Starting download of {len(files)} files")
     for file in files:
-        logger.info(f"Downloading file: {file['name']} ({file_size(num_bytes=file['size'])})")
+        logger.info(f"Downloading file {nbdone}/{len(files)}: {file['name']} ({file_size(num_bytes=file['size'])})")
         downloadUrl = file['link']
         name = file['name']
         if folderPath:
-            path = os.path.join(folderPath, name)
+            folderPath = check_folderPath(folderPath)
         else:
-            path = name
-        speed, elapsed_time = downloadFile(downloadUrl, path, logger)
-        logger.info(f"File download to: {path} in {elapsed_time} at {speed}")
+            folderPath = check_folderPath(os.path.join(os.getcwd(), folderId))
+        path = os.path.join(folderPath, name)
+        if os.path.exists(path) and not force:
+            logger.warning(f"File {name} already exists skipping (set --force to overwrite)")
+        elif os.path.exists(path) and force:
+            logger.warning(f"File {name} already exists overwriting")
+            speed, elapsed_time = downloadFile(downloadUrl, path, logger)
+            logger.info(f"File download to: {path} in {elapsed_time} at {speed}")
+        else:
+            speed, elapsed_time = downloadFile(downloadUrl, path, logger)
+            logger.info(f"File download to: {path} in {elapsed_time} at {speed}")
+        nbdone += 1
+    play_sound()
 
 
 def opt():
@@ -316,16 +346,14 @@ def opt():
     exclusive_group.add_argument('--stats', "-s",  action='store_true', help='Display account stats.')
     
     exclusive_group.add_argument("--download", "-d", type=str, help="Id or code to the folder to be downloaded")
+    parser.add_argument("--output", "-o", type=str, help="¨Path to the folder to be downloaded")
+    parser.add_argument("--force", "-fo", action="store_true", help="Overwrite existing files")
 
-    # parser.add_argument_group
-    # parser.add_mutually_exclusive_group
     return parser.parse_args()
 
 
 def init():
     args = opt()
-    # print('args: ', args)
-    # print(sys.argv)
     log_format = "%(asctime)s %(levelname)s: %(message)s"
     logging.basicConfig(level=getattr(logging, args.log_level.upper()),format=log_format,datefmt="%H:%M:%S",)
     logger = logging.getLogger(__name__)
@@ -344,7 +372,7 @@ def init():
             set_env_var("GOPLOAD_TOKEN", args.token)
         else:
             logger.error("Error: GOPLOAD_TOKEN not found, add GOPLOAD_TOKEN to your environment variables")
-            sys.exit("Error: GOPLOAD_TOKEN not found, add GOPLOAD_TOKEN to your environment variables")
+            sys.exit()
 
     if not PRIVATE_PARENT_ID:
         if args.private_parent_id:
@@ -357,8 +385,13 @@ def init():
             set_env_var("GOPLOAD_PRIVATE_PARENT_ID", args.private_parent_id)
         else:
             logger.error("Error: GOPLOAD_PRIVATE_PARENT_ID not found, add GOPLOAD_PRIVATE_PARENT_ID to your environment variables")
-            sys.exit("Error: GOPLOAD_PRIVATE_PARENT_ID not found, add GOPLOAD_PRIVATE_PARENT_ID to your environment variables")
+            sys.exit()
 
+    # No params:
+    if len(sys.argv) == 1:
+        logger.error("No arguments specified. Use -h for help")
+        sys.exit("")
+        
     # Stats section
     if args.stats:
         if len(sys.argv) == 2:
@@ -371,13 +404,13 @@ def init():
     elif args.file:
         if args.folder:
             logger.error("Both file and folder specified")
-            sys.exit("Both file and folder specified")
+            sys.exit()
         else:
             upload(args.file, args.folder, args.name, args.parent, args.private, logger)
     elif args.folder:
         if args.file:
             logger.error("Both file and folder specified")
-            sys.exit("Both file and folder specified")
+            sys.exit()
         else:
             upload(args.file, args.folder, args.name, args.parent, args.private, logger)
 
@@ -387,7 +420,7 @@ def init():
 
     # Download section
     elif args.download:
-        download(args.download, logger)
+        download(args.download, args.output, args.force, logger)
 
 
 if __name__ == "__main__":

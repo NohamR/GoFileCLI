@@ -133,3 +133,6 @@ encrypt.py
 /temp
 .copy
 .github/workflows/build_latest_ex.yml
+assets/sounds/Blow.aiff
+assets/sounds/Blow.mp3
+assets/sounds/Blow.wav
