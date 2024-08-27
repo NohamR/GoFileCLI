@@ -10,6 +10,7 @@ tag=$1
 
 source ~/miniconda3/etc/profile.d/conda.sh
 conda activate 310
+pip install -r requirements.txt
 python -m nuitka --onefile --assume-yes-for-downloads --output-dir=dist --static-libpython=no gofilecli.py 
 mv dist/gofilecli.bin ./gofilecli
 
