@@ -53,6 +53,7 @@ gofilecli -d https://gofile.io/d/XXXXX # to download a folder
 ```
 
 # To do :
+- KeyboardInterrupt + Lost connexion
 - error-rateLimit
 - env via CLI
 - finish README.md

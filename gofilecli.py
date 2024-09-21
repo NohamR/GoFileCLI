@@ -11,6 +11,36 @@ import platform
 import subprocess
 import sys
 import simpleaudio as sa
+import ping3
+
+
+def reqst(url, method ,headers=None, data=None, files=None, params=None, json=None, logger=None):
+    try:
+        if method == "get":
+            response = requests.get(url, headers=headers, data=data, params=params, json=json)
+        elif method == "post":
+            response = requests.post(url, headers=headers, data=data, files=files, params=params, json=json)
+        elif method == "put":
+            response = requests.put(url, headers=headers, data=data, files=files, params=params, json=json)
+        elif method == "delete":
+            response = requests.delete(url, headers=headers, data=data, files=files, params=params, json=json)
+        json_response = response.json()  # If response content is not JSON, this will raise a ValueError
+        return json_response
+    except requests.exceptions.HTTPError as http_err:
+        logger.error(f"HTTP error occurred: {http_err}")  # Handles HTTP errors (e.g., 404, 500)
+        sys.exit()
+    except requests.exceptions.ConnectionError as conn_err:
+        logger.error(f"Connection error occurred: {conn_err}")  # Handles network-related errors
+        sys.exit()
+    except requests.exceptions.Timeout as timeout_err:
+        logger.error(f"Timeout error occurred: {timeout_err}")  # Handles request timeouts
+        sys.exit()
+    except requests.exceptions.RequestException as req_err:
+        logger.error(f"An error occurred: {req_err}")  # Catches any other requests-related errors
+        sys.exit()
+    except ValueError as json_err:
+        logger.error(f"JSON decode error: {json_err}")  # Handles issues with JSON decoding
+        sys.exit()
 
 
 def play_sound():
@@ -99,7 +129,8 @@ def check_folderPath(path):
 
 def getservers(logger):
     servers = []
-    response = requests.get("https://api.gofile.io/servers").json()
+    # response = requests.get("https://api.gofile.io/servers").json()
+    response = reqst("https://api.gofile.io/servers", logger=logger, method="get")
     if response["status"] == "ok":
         for server in response["data"]["servers"]:
             servers.append(server["name"])
@@ -110,22 +141,60 @@ def getservers(logger):
         return None
     
 
+def ping_server(url, count=4):
+    response_times = []
+    for _ in range(count):
+        response_time = ping3.ping(url)
+        if response_time:
+            response_times.append(response_time)
+        time.sleep(0.2)
+    if response_times:
+        avg_response = sum(response_times) / len(response_times)
+        return avg_response
+    else:
+        return float('inf')
+    
+
+def test_servers(servers, logger):
+    best_server = None
+    best_time = float('inf')
+    for server in servers:
+        logger.debug(f"Pinging {server}...")
+        url = f"{server}.gofile.io"
+        avg_time = ping_server(url)
+        logger.debug(f"Average response time for {server}: {avg_time:.2f} ms")
+        if avg_time < best_time:
+            best_time = avg_time
+            best_server = server
+    if best_server:
+        logger.debug(f"\nThe best server is {best_server} with an average response time of {best_time:.2f} ms.")
+    else:
+        logger.error("All pings failed.")
+    return best_server
+
+
 def get_stats(logger):
     headers = {'authorization': f'Bearer {TOKEN}',}
-    data = requests.get(f'https://api.gofile.io/accounts/{ACCOUNT_ID}', headers=headers).json()
-    stats = data["data"]["statsCurrent"]
-    logger.info("Account stats:")
-    logger.info(f"Total files: {stats['fileCount']}")
-    logger.info(f"Total folders: {stats['folderCount']}")
-    size = file_size(num_bytes=stats['storage'])
-    logger.info(f"Total size: {size}")
-    traffic = file_size(num_bytes=stats['trafficWebDownloaded'])
-    logger.info(f"Total traffic: {traffic}")
+    # data = requests.get(f'https://api.gofile.io/accounts/{ACCOUNT_ID}', headers=headers).json()
+    data = reqst(f'https://api.gofile.io/accounts/{ACCOUNT_ID}', headers=headers, logger=logger, method="get")
+    if data["status"] == "ok":
+        stats = data["data"]["statsCurrent"]
+        logger.info("Account stats:")
+        logger.info(f"Total files: {stats['fileCount']}")
+        logger.info(f"Total folders: {stats['folderCount']}")
+        size = file_size(num_bytes=stats['storage'])
+        logger.info(f"Total size: {size}")
+        traffic = file_size(num_bytes=stats['trafficWebDownloaded'])
+        logger.info(f"Total traffic: {traffic}")
+    else:
+        logger.error(f"{data}")
+        return None
 
 
 def get_rootfolder(logger):
     headers = {'authorization': f'Bearer {TOKEN}',}
-    data = requests.get(f'https://api.gofile.io/accounts/{ACCOUNT_ID}', headers=headers).json()
+    # data = requests.get(f'https://api.gofile.io/accounts/{ACCOUNT_ID}', headers=headers).json()
+    data = reqst(f'https://api.gofile.io/accounts/{ACCOUNT_ID}', headers=headers, logger=logger, method="get")
     root_folder = data.get("data", {}).get("rootFolder", {})
     if root_folder:
         return root_folder
@@ -137,7 +206,8 @@ def get_rootfolder(logger):
 def get_code(folderId, logger):
     headers = {'authorization': f'Bearer {TOKEN}',}
     params = (('wt', '4fd6sg89d7s6'),('cache', 'false'),)
-    data = requests.get(f'https://api.gofile.io/contents/{folderId}', headers=headers, params=params).json()
+    # data = requests.get(f'https://api.gofile.io/contents/{folderId}', headers=headers, params=params).json()
+    data = reqst(f'https://api.gofile.io/contents/{folderId}', headers=headers, params=params, logger=logger, method="get")
     code = data.get("data", {}).get("code", {})
     if code:
         return code
@@ -149,7 +219,8 @@ def get_code(folderId, logger):
 def get_children(id, logger):
     headers = {'authorization': f'Bearer {TOKEN}',}
     params = (('wt', '4fd6sg89d7s6'),('cache', 'false'),)
-    data = requests.get(f'https://api.gofile.io/contents/{id}', headers=headers, params=params).json()
+    # data = requests.get(f'https://api.gofile.io/contents/{id}', headers=headers, params=params).json()
+    data = reqst(f'https://api.gofile.io/contents/{id}', headers=headers, params=params, logger=logger, method="get")
     children = data.get("data", {}).get("children", {})
     if children:
         return children
@@ -169,7 +240,8 @@ def createfolder(parentFolderId, folderName, logger):
         data = {"parentFolderId": parentFolderId, "folderName": folderName}
     else:
         data = {"parentFolderId": parentFolderId}
-    response = requests.post("https://api.gofile.io/contents/createFolder", headers=headers, json=data).json()
+    # response = requests.post("https://api.gofile.io/contents/createFolder", headers=headers, json=data).json()
+    response = reqst("https://api.gofile.io/contents/createFolder", headers=headers, json=data, logger=logger, method="post")
     if response["status"] == "ok":
         name = response["data"]["name"]
         code = response["data"]["code"]
@@ -188,7 +260,8 @@ def uploadfile(serverName, folderId, filePath, logger):
         'folderId': (None, folderId),
     }
     start_time = time.time()
-    response = requests.post(f"https://{serverName}.gofile.io/contents/uploadfile", headers=headers, files=files).json()
+    # response = requests.post(f"https://{serverName}.gofile.io/contents/uploadfile", headers=headers, files=files).json()
+    response = reqst(f"https://{serverName}.gofile.io/contents/uploadfile", headers=headers, files=files, logger=logger, method="post")
     speed, elapsed_time = calculate_upload_speed(filePath, start_time)
     if response["status"] == "ok":
         logger.debug(response)
@@ -202,10 +275,11 @@ def uploadfile(serverName, folderId, filePath, logger):
         return None
 
 
-def actionFolder(folderId, attributeValue):
+def actionFolder(folderId, attributeValue, logger):
     headers = {"Content-Type": "application/json", "Authorization": f"Bearer {TOKEN}"}
     data = {"attribute": "public", "attributeValue": attributeValue}
-    response = requests.put(f"https://api.gofile.io/contents/{folderId}/update", headers=headers, json=data).json()
+    # response = requests.put(f"https://api.gofile.io/contents/{folderId}/update", headers=headers, json=data).json()
+    response = reqst(f"https://api.gofile.io/contents/{folderId}/update", headers=headers, json=data, logger=logger, method="put")
     if response["status"] == "ok":
         return True
     else:
@@ -230,7 +304,10 @@ def upload(filePath, folderPath, folderName, parentFolderId, private, logger):
 
     servers = getservers(logger)
     if servers:
-        serverName = random.choice(servers)
+        if len(servers) > 1:
+            serverName = test_servers(servers, logger)
+        else:
+            serverName = servers[0]
         logger.debug(f"Selected server: {serverName}")
 
         if folderName and parentFolderId:
@@ -247,25 +324,25 @@ def upload(filePath, folderPath, folderName, parentFolderId, private, logger):
             parentFolderId = parentFolderId
             logger.debug(f"FolderId: {parentFolderId}")
         else:
-            parentFolderId = None
+            parentFolderId = PRIVATE_PARENT_ID
             logger.debug(f"FolderId: {parentFolderId}")
 
         for file in files:
             if parentFolderId:
                 logger.info(f"Uploading file: '{file}' ({file_size(file)}) to: '{parentFolderId}' on: '{serverName}'")
             else:
-                logger.info(f"Uploading file: {file} ({file_size(file)}) on: {serverName}")
+                logger.info(f"Uploading file: '{file}' ({file_size(file)}) on: '{serverName}'")
             downloadPage, parentFolderId, speed, elapsed_time = uploadfile(serverName, parentFolderId, file, logger)
             logger.info(f"File uploaded to: {downloadPage} in {elapsed_time} at {speed}")
 
         if not private:
-            action = actionFolder(parentFolderId, "true")
+            action = actionFolder(parentFolderId, "true", logger)
             if action:
                 logger.info("Folder made public")
             else:
                 logger.error(f"{action}")
         else:
-            action = actionFolder(parentFolderId, "false")
+            action = actionFolder(parentFolderId, "false", logger)
             if action:
                 logger.info("Folder made private")
             else:
@@ -279,7 +356,8 @@ def upload(filePath, folderPath, folderName, parentFolderId, private, logger):
 def downloadFile(downloadUrl, path, logger):
     start_time = time.time()
     headers = {"Authorization": f"Bearer {TOKEN}"}
-    response = requests.get(downloadUrl, headers=headers)
+    # response = requests.get(downloadUrl, headers=headers)
+    response = reqst(downloadUrl, headers=headers, logger=logger, method="get")
     with open(path, "wb") as f:
         f.write(response.content)
     logger.debug(f"File downloaded: {path}")
@@ -424,4 +502,8 @@ def init():
 
 
 if __name__ == "__main__":
-    init()
+    try:
+        init()
+    except KeyboardInterrupt:
+        print("\nExiting...")
+        sys.exit()
