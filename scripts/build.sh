@@ -11,7 +11,7 @@ tag=$1
 source ~/miniconda3/etc/profile.d/conda.sh
 conda activate 310
 pip install -r requirements.txt
-python -m nuitka --onefile --assume-yes-for-downloads --output-dir=dist --static-libpython=no gofilecli.py 
+python -m nuitka --onefile --assume-yes-for-downloads --output-dir=dist --static-libpython=no gofilecli.py --include-data-files=./assets/sounds/Blow_edited.wav=assets/sounds/Blow_edited.wav
 mv dist/gofilecli.bin ./gofilecli
 
 mkdir -p GoFileCLI_linux-arm64

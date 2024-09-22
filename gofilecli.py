@@ -50,8 +50,16 @@ def reqst(url, method ,headers=None, data=None, files=None, params=None, json=No
         sys.exit()
 
 
+def load_file(file_name: str) -> str:
+    """
+    Get the correct path to a file, regardless of development or compiled mode.
+    """
+    return os.path.join(os.path.dirname(__file__), file_name)
+
+
 def play_sound():
-    wave_obj = sa.WaveObject.from_wave_file("assets/sounds/Blow_edited.wav")
+    sound_path = load_file("assets/sounds/Blow_edited.wav")
+    wave_obj = sa.WaveObject.from_wave_file(sound_path)
     play_obj = wave_obj.play()
     play_obj.wait_done()
 
@@ -300,8 +308,15 @@ def uploadfile(serverName, folderId, filePath, logger):
     #             logger.error(f"Error: {e}")
     # logger.debug(f"{response.text}")
     # response = response.json()
-    command = f"""curl -X POST 'https://{serverName}.gofile.io/contents/uploadfile' -H "Authorization: Bearer {TOKEN}" -F "file=@{filePath}" -F "folderId={folderId}" """
-    response = subprocess.run(command, shell=True, capture_output=True, text=True)
+    command = [
+        "curl",
+        "-X", "POST",
+        f"https://{serverName}.gofile.io/contents/uploadfile",
+        "-H", f"Authorization: Bearer {TOKEN}",
+        "-F", f"file=@{filePath}",
+        "-F", f"folderId={folderId}",
+    ]
+    response = subprocess.run(command, capture_output=True, text=True)
     try:
         response_json = json.loads(response.stdout)
     except json.JSONDecodeError:
