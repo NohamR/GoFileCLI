@@ -6,12 +6,13 @@ import argparse
 import os
 import logging
 import sys
-from dotenv import load_dotenv, set_key
 import platform
 import subprocess
 import sys
 import simpleaudio as sa
-import ping3
+from tqdm import tqdm
+import json
+from dotenv import load_dotenv
 
 
 def reqst(url, method ,headers=None, data=None, files=None, params=None, json=None, logger=None):
@@ -24,21 +25,27 @@ def reqst(url, method ,headers=None, data=None, files=None, params=None, json=No
             response = requests.put(url, headers=headers, data=data, files=files, params=params, json=json)
         elif method == "delete":
             response = requests.delete(url, headers=headers, data=data, files=files, params=params, json=json)
+        logger.debug(f"Request to {url} with method {method} returned status code {response.status_code}")
         json_response = response.json()  # If response content is not JSON, this will raise a ValueError
         return json_response
     except requests.exceptions.HTTPError as http_err:
+        logger.debug(f"Response: {response.text}")
         logger.error(f"HTTP error occurred: {http_err}")  # Handles HTTP errors (e.g., 404, 500)
         sys.exit()
     except requests.exceptions.ConnectionError as conn_err:
+        logger.debug(f"Response: {response.text}")
         logger.error(f"Connection error occurred: {conn_err}")  # Handles network-related errors
         sys.exit()
     except requests.exceptions.Timeout as timeout_err:
+        logger.debug(f"Response: {response.text}")
         logger.error(f"Timeout error occurred: {timeout_err}")  # Handles request timeouts
         sys.exit()
     except requests.exceptions.RequestException as req_err:
+        logger.debug(f"Response: {response.text}")
         logger.error(f"An error occurred: {req_err}")  # Catches any other requests-related errors
         sys.exit()
     except ValueError as json_err:
+        logger.debug(f"Response: {response.text}")
         logger.error(f"JSON decode error: {json_err}")  # Handles issues with JSON decoding
         sys.exit()
 
@@ -141,13 +148,18 @@ def getservers(logger):
         return None
     
 
-def ping_server(url, count=4):
+def ping_server(url, logger, num_requests=4, delay=0.1):
     response_times = []
-    for _ in range(count):
-        response_time = ping3.ping(url)
-        if response_time:
-            response_times.append(response_time)
-        time.sleep(0.2)
+    for _ in range(num_requests):
+        try:
+            start_time = time.time()
+            response = requests.head(url)
+            response_time = time.time() - start_time
+            if response.status_code == 200:
+                response_times.append(response_time)
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Error: {e}")
+        time.sleep(delay)
     if response_times:
         avg_response = sum(response_times) / len(response_times)
         return avg_response
@@ -160,8 +172,8 @@ def test_servers(servers, logger):
     best_time = float('inf')
     for server in servers:
         logger.debug(f"Pinging {server}...")
-        url = f"{server}.gofile.io"
-        avg_time = ping_server(url)
+        url = f"https://{server}.gofile.io"
+        avg_time = ping_server(url, logger)
         logger.debug(f"Average response time for {server}: {avg_time:.2f} ms")
         if avg_time < best_time:
             best_time = avg_time
@@ -245,7 +257,7 @@ def createfolder(parentFolderId, folderName, logger):
     if response["status"] == "ok":
         name = response["data"]["name"]
         code = response["data"]["code"]
-        folderId = response["data"]["folderId"]
+        folderId = response["data"]["id"]
         logger.debug(f"""Folder {name} created with code {code} and folderId {folderId}""")
         return folderId
     else:
@@ -253,16 +265,50 @@ def createfolder(parentFolderId, folderName, logger):
         return None
 
 
+def read_in_chunks(file_object, CHUNK_SIZE):
+    while True:
+        data = file_object.read(CHUNK_SIZE)
+        if not data:
+            break
+        yield data
+
+
 def uploadfile(serverName, folderId, filePath, logger):
-    headers = {"Authorization": f"Bearer {TOKEN}"}
-    files = {
-        'file': (filePath, open(filePath, 'rb')),
-        'folderId': (None, folderId),
-    }
+    # reference : https://api.video/blog/tutorials/upload-a-big-video-file-using-python/
     start_time = time.time()
-    # response = requests.post(f"https://{serverName}.gofile.io/contents/uploadfile", headers=headers, files=files).json()
-    response = reqst(f"https://{serverName}.gofile.io/contents/uploadfile", headers=headers, files=files, logger=logger, method="post")
+    # CHUNK_SIZE = 6000000
+    # content_size = os.stat(filePath).st_size
+    # f = open(filePath, "rb")
+    # index = 0
+    # offset = 0
+    # headers = {"Authorization": f"Bearer {TOKEN}", 'content-type': 'multipart/form-data',}
+    # with tqdm(total=content_size, unit='B', unit_scale=True, desc='Uploading', leave=False) as progress_bar:
+    #     for chunk in read_in_chunks(f, CHUNK_SIZE):
+    #         offset = index + len(chunk)
+    #         headers['Content-Range'] = 'bytes %s-%s/%s' % (index, offset - 1, content_size)
+    #         index = offset
+    #         try:
+    #             # file = {"file": chunk, 'folderId': (None, folderId)}
+    #             # response = requests.post(f"https://{serverName}.gofile.io/contents/uploadfile", files=file, headers=headers)
+    #             # files = {"file": chunk}
+    #             # data = {"folderId": folderId}
+    #             files = {"file": chunk,}
+    #             response = requests.post(f"https://{serverName}.gofile.io/contents/uploadfile",files=files,headers=headers)
+    #             logger.debug("r: %s, Content-Range: %s" % (response, headers['Content-Range']))
+    #             progress_bar.update(len(chunk))
+    #         except Exception as e:
+    #             logger.error(f"Error: {e}")
+    # logger.debug(f"{response.text}")
+    # response = response.json()
+    command = f"""curl -X POST 'https://{serverName}.gofile.io/contents/uploadfile' -H "Authorization: Bearer {TOKEN}" -F "file=@{filePath}" -F "folderId={folderId}" """
+    response = subprocess.run(command, shell=True, capture_output=True, text=True)
+    try:
+        response_json = json.loads(response.stdout)
+    except json.JSONDecodeError:
+        logger.error("Failed to parse response as JSON.")
+        return None
     speed, elapsed_time = calculate_upload_speed(filePath, start_time)
+    response = response_json
     if response["status"] == "ok":
         logger.debug(response)
         name = response["data"]["name"]
@@ -301,11 +347,16 @@ def upload(filePath, folderPath, folderName, parentFolderId, private, logger):
         else:
             logger.error("File not found")
             sys.exit()
-
+    
+    # Getting servers
     servers = getservers(logger)
     if servers:
-        if len(servers) > 1:
-            serverName = test_servers(servers, logger)
+        if len(servers) > 1: # If there are multiple servers, check the size of the files
+            if max([os.path.getsize(file) for file in files]) > 100 * 1024 * 1024:  # 100 MB in bytes
+                logger.debug("One of the file have a size > 100 MB. Fetching best server...")
+                serverName = test_servers(servers, logger)
+            else:
+                serverName = random.choice(servers)
         else:
             serverName = servers[0]
         logger.debug(f"Selected server: {serverName}")
@@ -324,7 +375,10 @@ def upload(filePath, folderPath, folderName, parentFolderId, private, logger):
             parentFolderId = parentFolderId
             logger.debug(f"FolderId: {parentFolderId}")
         else:
-            parentFolderId = PRIVATE_PARENT_ID
+            # parentFolderId = PRIVATE_PARENT_ID
+            logger.info(f"Creating folder: {folderName} for PRIVATE_PARENT_ID: {PRIVATE_PARENT_ID}")
+            folderId = createfolder(PRIVATE_PARENT_ID, None, logger)
+            parentFolderId = folderId
             logger.debug(f"FolderId: {parentFolderId}")
 
         for file in files:
@@ -356,10 +410,15 @@ def upload(filePath, folderPath, folderName, parentFolderId, private, logger):
 def downloadFile(downloadUrl, path, logger):
     start_time = time.time()
     headers = {"Authorization": f"Bearer {TOKEN}"}
-    # response = requests.get(downloadUrl, headers=headers)
-    response = reqst(downloadUrl, headers=headers, logger=logger, method="get")
-    with open(path, "wb") as f:
-        f.write(response.content)
+    response = requests.get(downloadUrl, headers=headers, stream=True)
+    # response = reqst(downloadUrl, headers=headers, logger=logger, method="get")
+    total_size = int(response.headers.get('content-length', 0))
+    
+    with open(path, "wb") as f, tqdm(total=total_size, unit='B', unit_scale=True, desc='Downloading', leave=False) as progress_bar:
+        for chunk in response.iter_content(1024):
+            if chunk:
+                f.write(chunk)
+                progress_bar.update(len(chunk))
     logger.debug(f"File downloaded: {path}")
     speed, elapsed_time = calculate_upload_speed(path, start_time)
     return speed, elapsed_time
@@ -437,6 +496,7 @@ def init():
     logger = logging.getLogger(__name__)
 
     load_dotenv()
+
     global TOKEN
     global PRIVATE_PARENT_ID
     global ACCOUNT_ID
