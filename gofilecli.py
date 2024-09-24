@@ -14,6 +14,10 @@ from tqdm import tqdm
 import json
 from dotenv import load_dotenv
 
+# Suppress ALSA warnings
+os.environ['SDL_AUDIODRIVER'] = 'dummy'
+os.environ['AUDIODEV'] = 'null'
+
 
 def reqst(url, method ,headers=None, data=None, files=None, params=None, json=None, logger=None):
     try:
