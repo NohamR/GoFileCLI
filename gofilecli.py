@@ -63,8 +63,6 @@ def play_sound(logger):
         wave_obj = sa.WaveObject.from_wave_file(sound_path)
         play_obj = wave_obj.play()
         play_obj.wait_done()
-    except sa.SimpleaudioError as e:
-        logger.debug(f"SimpleaudioError: {e}")
     except Exception as e:
         logger.debug(f"An error occurred while playing sound: {e}")
 
