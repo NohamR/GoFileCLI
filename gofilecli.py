@@ -57,11 +57,16 @@ def load_file(file_name: str) -> str:
     return os.path.join(os.path.dirname(__file__), file_name)
 
 
-def play_sound():
-    sound_path = load_file("assets/sounds/Blow_edited.wav")
-    wave_obj = sa.WaveObject.from_wave_file(sound_path)
-    play_obj = wave_obj.play()
-    play_obj.wait_done()
+def play_sound(logger):
+    try:
+        sound_path = load_file("assets/sounds/Blow_edited.wav")
+        wave_obj = sa.WaveObject.from_wave_file(sound_path)
+        play_obj = wave_obj.play()
+        play_obj.wait_done()
+    except sa.SimpleaudioError as e:
+        logger.debug(f"SimpleaudioError: {e}")
+    except Exception as e:
+        logger.debug(f"An error occurred while playing sound: {e}")
 
 
 def set_env_var_unix(name, value, shell="bash"):
@@ -416,7 +421,7 @@ def upload(filePath, folderPath, folderName, parentFolderId, private, logger):
                 logger.info("Folder made private")
             else:
                 logger.error(f"{action}")
-        play_sound()
+        play_sound(logger)
     else:
         time.sleep(10)
         sys.exit()
@@ -478,7 +483,7 @@ def download(folderId, folderPath, force, logger):
             speed, elapsed_time = downloadFile(downloadUrl, path, logger)
             logger.info(f"File download to: {path} in {elapsed_time} at {speed}")
         nbdone += 1
-    play_sound()
+    play_sound(logger)
 
 
 def opt():
